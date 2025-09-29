@@ -1,68 +1,42 @@
-from selenium import webdriver
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from utils.driver_manager import DriverManager
+from pages.login_page import LoginPage
+from config.config import Config
 import time
 
-def test_login():
-    """Test user login functionality"""
-    print("Starting login test...")
-
-    # Set up Chrome options
-    chrome_options = Options()
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-
-    # Use webdriver-manager for automatic ChromeDriver management
-    service = Service(ChromeDriverManager().install())
-    driver = webdriver.Chrome(service=service, options=chrome_options)
-
+def test_valid_login():
+    driver = DriverManager.get_driver()
+    login_page = LoginPage(driver)
+    
     try:
-        # Navigate to login page
-        driver.get("https://events-uat.pagamio.tech/login?callbackUrl=%2Fevents%2Fsearch")
-        print("Successfully opened login page!")
-        
-        # Wait for page to load
+        login_page.navigate()
+        time.sleep(3)
+        login_page.login_with_valid_credentials()
         time.sleep(5)
         
-        # Find and fill username field
-        username_field = driver.find_element(By.XPATH, "//input[@placeholder='Enter username']")
-        username_field.send_keys("TestGrace")
-        print("✅ Entered username: TestGrace")
-        
-        # Find and fill password field
-        password_field = driver.find_element(By.NAME, "password")
-        password_field.send_keys("pagamio123")
-        print("✅ Entered password")
-        
-        # Find and click login button
-        login_button = driver.find_element(By.XPATH, "//button[contains(text(), 'Login')]")
-        login_button.click()
-        print("✅ Clicked login button")
-        
-        # Wait for login to process and page to redirect
-        time.sleep(8)
-        
-        # Check if login was successful by looking at the URL
-        current_url = driver.current_url
-        print(f"Current URL after login: {current_url}")
-        
-        # Check if we're no longer on the login page
-        if "login" not in current_url:
-            print("✅ Login appears successful - redirected away from login page!")
-        else:
-            print("❌ Still on login page - login may have failed")
-        
-        # Get the page title after login
-        title = driver.title
-        print(f"Page title after login: {title}")
-        
+        assert "login" not in login_page.get_current_url()
+        print("✅ Valid login test PASSED")
     finally:
-        # Keep browser open for 5 seconds so you can see the result
-        time.sleep(5)
         driver.quit()
-        print("Browser closed successfully!")
+
+def test_invalid_login():
+    driver = DriverManager.get_driver()
+    login_page = LoginPage(driver)
+    
+    try:
+        login_page.navigate()
+        time.sleep(3)
+        login_page.login(Config.INVALID_USERNAME, Config.INVALID_PASSWORD)
+        time.sleep(5)
+        
+        assert "login" in login_page.get_current_url()
+        print("✅ Invalid login test PASSED")
+    finally:
+        driver.quit()
 
 if __name__ == "__main__":
-    test_login()
+    test_valid_login()
+    test_invalid_login()
